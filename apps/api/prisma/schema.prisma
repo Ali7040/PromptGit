@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// PromptGit — Full Database Schema
+// Covers: users, workspaces, prompts, versioning, evals, marketplace, skills, AI enhancement
 
 generator client {
   provider = "prisma-client-js"
@@ -10,4 +8,470 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  passwordHash  String?
+  githubId      String?  @unique
+  googleId      String?  @unique
+  emailVerified Boolean  @default(false)
+  plan          Plan     @default(FREE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  refreshTokens     RefreshToken[]
+  workspaceMembers  WorkspaceMember[]
+  ownedWorkspaces   Workspace[]           @relation("WorkspaceOwner")
+  apiKeys           ApiKey[]
+  promptVersions    PromptVersion[]       @relation("VersionAuthor")
+  packReviews       PackReview[]
+  skills            Skill[]
+  creatorProfile    CreatorProfile?
+  workspaceEvents   WorkspaceEvent[]
+  packPurchases     PackPurchase[]        @relation("Buyer")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+// ─────────────────────────────────────────────
+// WORKSPACES & TEAMS
+// ─────────────────────────────────────────────
+
+model Workspace {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  avatarUrl   String?
+  ownerId     String
+  plan        Plan     @default(FREE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members  WorkspaceMember[]
+  prompts  Prompt[]
+  apiKeys  ApiKey[]
+  events   WorkspaceEvent[]
+  packs    Pack[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String          @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole   @default(VIEWER)
+  inviteToken String?         @unique
+  inviteEmail String?
+  acceptedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  keyHash     String   @unique
+  keyPrefix   String
+  userId      String
+  workspaceId String?
+  scopes      String[] @default(["read"])
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// ─────────────────────────────────────────────
+// PROMPTS & VERSIONING
+// ─────────────────────────────────────────────
+
+model Prompt {
+  id          String        @id @default(cuid())
+  slug        String
+  name        String
+  description String?
+  tags        String[]      @default([])
+  workspaceId String
+  isPublic    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions   PromptVersion[]
+  testSuites TestSuite[]
+  skills     SkillPrompt[]
+
+  @@unique([workspaceId, slug])
+  @@map("prompts")
+}
+
+model PromptVersion {
+  id           String      @id @default(cuid())
+  promptId     String
+  versionTag   String
+  content      String
+  contentHash  String
+  commitMsg    String?
+  variables    Json        @default("[]")   // [{name, description, defaultValue, required}]
+  model        String?                      // which model this was tested against
+  environment  Environment @default(DEV)
+  authorId     String
+  parentId     String?
+  createdAt    DateTime    @default(now())
+
+  prompt    Prompt          @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  author    User            @relation("VersionAuthor", fields: [authorId], references: [id])
+  parent    PromptVersion?  @relation("VersionTree", fields: [parentId], references: [id])
+  children  PromptVersion[] @relation("VersionTree")
+  evalRuns  EvalRun[]
+  enhancements PromptEnhancement[]
+
+  @@unique([promptId, versionTag])
+  @@map("prompt_versions")
+}
+
+enum Environment {
+  DEV
+  STAGING
+  PRODUCTION
+}
+
+// ─────────────────────────────────────────────
+// AI ENHANCEMENT ENGINE (core differentiator)
+// ─────────────────────────────────────────────
+
+model PromptEnhancement {
+  id              String             @id @default(cuid())
+  versionId       String
+  model           String             // claude-opus-4-6, gpt-4o, etc.
+  enhancementType EnhancementType
+  originalContent String
+  enhancedContent String
+  diff            Json               // structured diff of changes
+  reasoning       String             // AI explanation of improvements
+  scoresBefore    Json               // {clarity, specificity, safety, effectiveness}
+  scoresAfter     Json
+  accepted        Boolean?
+  createdAt       DateTime           @default(now())
+
+  version PromptVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("prompt_enhancements")
+}
+
+enum EnhancementType {
+  CLARITY         // improve clarity and readability
+  SPECIFICITY     // add more specific instructions
+  SAFETY          // add safety guardrails
+  STRUCTURE       // improve format/structure
+  VARIABLES       // extract hardcoded values into variables
+  CHAIN_OF_THOUGHT // add CoT reasoning scaffolding
+  FEW_SHOT        // suggest few-shot examples
+  FULL_REWRITE    // complete AI-driven rewrite
+}
+
+// ─────────────────────────────────────────────
+// SKILLS (SKILL.md system)
+// ─────────────────────────────────────────────
+
+model Skill {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String
+  content     String      // full SKILL.md content in markdown
+  trigger     String?     // when to invoke this skill
+  model       String?     // preferred model
+  tags        String[]    @default([])
+  isPublic    Boolean     @default(false)
+  authorId    String
+  version     String      @default("1.0.0")
+  downloads   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  author  User          @relation(fields: [authorId], references: [id])
+  prompts SkillPrompt[]
+
+  @@map("skills")
+}
+
+model SkillPrompt {
+  skillId  String
+  promptId String
+  role     String  @default("primary") // primary, supporting, example
+
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  prompt Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@id([skillId, promptId])
+  @@map("skill_prompts")
+}
+
+// ─────────────────────────────────────────────
+// EVAL RUNNER
+// ─────────────────────────────────────────────
+
+model TestSuite {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  promptId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prompt   Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  cases    TestCase[]
+  evalRuns EvalRun[]
+
+  @@map("test_suites")
+}
+
+model TestCase {
+  id              String  @id @default(cuid())
+  suiteId         String
+  input           String
+  expectedOutput  String?
+  variables       Json    @default("{}")
+  scoringType     ScoringType @default(EXACT_MATCH)
+  scoringConfig   Json    @default("{}")
+
+  suite       TestSuite      @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+  evalResults EvalResult[]
+
+  @@map("test_cases")
+}
+
+enum ScoringType {
+  EXACT_MATCH
+  CONTAINS
+  REGEX
+  LLM_JUDGE
+  SEMANTIC_SIMILARITY
+  CUSTOM
+}
+
+model EvalRun {
+  id          String     @id @default(cuid())
+  versionId   String
+  suiteId     String
+  model       String
+  status      EvalStatus @default(PENDING)
+  accuracy    Float?
+  avgLatencyMs Int?
+  totalTokens  Int?
+  errorMessage String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  version  PromptVersion @relation(fields: [versionId], references: [id])
+  suite    TestSuite     @relation(fields: [suiteId], references: [id])
+  results  EvalResult[]
+
+  @@map("eval_runs")
+}
+
+model EvalResult {
+  id          String  @id @default(cuid())
+  runId       String
+  caseId      String
+  actualOutput String
+  passed      Boolean
+  score       Float?
+  latencyMs   Int?
+  tokens      Int?
+  judgeReason String?
+
+  run  EvalRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  case TestCase @relation(fields: [caseId], references: [id])
+
+  @@map("eval_results")
+}
+
+enum EvalStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// MARKETPLACE
+// ─────────────────────────────────────────────
+
+model Pack {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  description  String
+  longDesc     String?
+  price        Int         @default(0)  // in cents; 0 = free
+  category     PackCategory
+  tags         String[]    @default([])
+  workspaceId  String
+  isPublished  Boolean     @default(false)
+  isFeatured   Boolean     @default(false)
+  downloads    Int         @default(0)
+  avgRating    Float?
+  reviewCount  Int         @default(0)
+  previewImage String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workspace  Workspace      @relation(fields: [workspaceId], references: [id])
+  items      PackItem[]
+  reviews    PackReview[]
+  purchases  PackPurchase[]
+
+  @@map("packs")
+}
+
+model PackItem {
+  id          String @id @default(cuid())
+  packId      String
+  name        String
+  description String?
+  content     String  // prompt content preview
+  sortOrder   Int     @default(0)
+
+  pack Pack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@map("pack_items")
+}
+
+model PackReview {
+  id        String   @id @default(cuid())
+  packId    String
+  userId    String
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  pack Pack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([packId, userId])
+  @@map("pack_reviews")
+}
+
+model PackPurchase {
+  id            String         @id @default(cuid())
+  packId        String
+  buyerId       String
+  amount        Int            // in cents
+  platformFee   Int            // 20%
+  creatorPayout Int            // 80%
+  status        PurchaseStatus @default(PENDING)
+  paymentRef    String?        // Lemon Squeezy order ID
+  createdAt     DateTime       @default(now())
+
+  pack  Pack @relation(fields: [packId], references: [id])
+  buyer User @relation("Buyer", fields: [buyerId], references: [id])
+
+  @@map("pack_purchases")
+}
+
+enum PackCategory {
+  AI_CODING
+  BUSINESS_AUTOMATION
+  MARKETING_COPYWRITING
+  DATA_ANALYSIS
+  EDUCATION
+  CREATIVE_WRITING
+  CUSTOMER_SUPPORT
+  OTHER
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+model CreatorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  payoutAccountId String?  // Lemon Squeezy connected account
+  totalEarnings   Int      @default(0)
+  pendingPayout   Int      @default(0)
+  bio             String?
+  website         String?
+  twitter         String?
+  github          String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("creator_profiles")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────
+
+model WorkspaceEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String?
+  action      String    // "prompt.version.created", "member.invited", etc.
+  resourceId  String?
+  resourceType String?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@map("workspace_events")
 }

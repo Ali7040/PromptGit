@@ -1,0 +1,20 @@
+{
+  "name": "@promptgit/sdk",
+  "version": "0.1.0",
+  "description": "Official JavaScript/TypeScript SDK for PromptGit",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": ["promptgit", "prompt", "ai", "llm", "sdk"],
+  "license": "MIT"
+}
