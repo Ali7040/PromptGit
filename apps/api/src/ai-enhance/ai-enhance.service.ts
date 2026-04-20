@@ -47,8 +47,8 @@ export class AiEnhanceService {
         enhancedContent,
         diff,
         reasoning,
-        scoresBefore,
-        scoresAfter,
+        scoresBefore: scoresBefore as object,
+        scoresAfter: scoresAfter as object,
       },
     });
   }

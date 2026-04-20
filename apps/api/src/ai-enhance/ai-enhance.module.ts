@@ -7,6 +7,6 @@ import { PromptScorerService } from './prompt-scorer.service';
 @Module({
   controllers: [AiEnhanceController],
   providers: [AiEnhanceService, ModelAdapterFactory, PromptScorerService],
-  exports: [AiEnhanceService],
+  exports: [AiEnhanceService, ModelAdapterFactory],
 })
 export class AiEnhanceModule {}
