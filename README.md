@@ -9,7 +9,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/yourusername/promptgit?style=social)](https://github.com/yourusername/promptgit)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da)](https://discord.gg/yourinvite)
 
-[Website](https://promptgit.dev) · [Documentation](https://docs.promptgit.dev) · [Marketplace](https://promptgit.dev/marketplace) · [Discord](https://discord.gg/yourinvite) · [Report Bug](https://github.com/yourusername/promptgit/issues)
+[Website](https://promptgit.dev) · [Documentation](https://docs.promptgit.dev) · [Marketplace](https://promptgit.dev/marketplace) · [Discord](https://discord.gg/YT35VaK9) · [Report Bug](https://github.com/yourusername/promptgit/issues)
 
 </div>
 
