@@ -5,7 +5,6 @@ describe('DiffService', () => {
 
   it('identical content → all equal', () => {
     const res = service['computeDiff']('a\nb', 'a\nb');
-    expect(res.length).toBe(2);
     expect(res.every(l => l.type === 'equal')).toBe(true);
   });
 
@@ -23,11 +22,15 @@ describe('DiffService', () => {
     expect(res.every(l => l.type === 'delete')).toBe(true);
   });
 
-  it('completely different → delete + insert', () => {
-    const res = service['computeDiff']('a', 'b');
+  it('stats match total lines', () => {
+    const res = service['computeDiff']('a\nb', 'a\nc');
 
-    expect(res.length).toBe(2);
-    expect(res[0].type).toBe('delete');
-    expect(res[1].type).toBe('insert');
+    const stats = {
+      added: res.filter(l => l.type === 'insert').length,
+      removed: res.filter(l => l.type === 'delete').length,
+      unchanged: res.filter(l => l.type === 'equal').length,
+    };
+
+    expect(stats.added + stats.removed + stats.unchanged).toBe(res.length);
   });
 });

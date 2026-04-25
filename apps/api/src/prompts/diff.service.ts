@@ -52,11 +52,11 @@ export class DiffService {
   }
 
   private computeDiff(a: string, b: string): DiffLine[] {
-    // ✅ FIX: handle empty string edge cases properly
+    // ✅ handle empty cases properly (no phantom empty line)
     if (!a) {
       return b
         .split('\n')
-        .filter(Boolean)
+        .filter((l) => l.length > 0)
         .map((content, i) => ({
           type: 'insert' as const,
           content,
@@ -68,7 +68,7 @@ export class DiffService {
     if (!b) {
       return a
         .split('\n')
-        .filter(Boolean)
+        .filter((l) => l.length > 0)
         .map((content, i) => ({
           type: 'delete' as const,
           content,
