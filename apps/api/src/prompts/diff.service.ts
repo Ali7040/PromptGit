@@ -5,7 +5,8 @@ export type ChangeType = 'equal' | 'insert' | 'delete';
 
 export interface DiffLine {
   type: ChangeType;
-  lineNumber?: number;
+  lineNumber: number;        // old file
+  toLineNumber?: number;     // new file
   content: string;
 }
 
@@ -50,23 +51,19 @@ export class DiffService {
     };
   }
 
-  /**
-   * Uses LCS (Longest Common Subsequence) to compute a line-level diff.
-   * This is conceptually similar to Myers diff used in Git.
-   */
   private computeDiff(a: string, b: string): DiffLine[] {
-    const aLines = a ? a.split('\n') : [];
-    const bLines = b ? b.split('\n') : [];
+    // FIX 1: remove incorrect empty guard
+    const aLines = a.split('\n');
+    const bLines = b.split('\n');
 
     const result: DiffLine[] = [];
-
     const lcs = this.buildLCS(aLines, bLines);
 
     let i = 0;
     let j = 0;
 
     for (const [ai, bi] of lcs) {
-      // deletions (from old)
+      // deletions
       while (i < ai) {
         result.push({
           type: 'delete',
@@ -76,21 +73,23 @@ export class DiffService {
         i++;
       }
 
-      // insertions (from new)
+      // insertions
       while (j < bi) {
         result.push({
           type: 'insert',
           content: bLines[j],
           lineNumber: j + 1,
+          toLineNumber: j + 1,
         });
         j++;
       }
 
-      // equal line
+      // FIX 2: correct equal mapping
       result.push({
         type: 'equal',
         content: aLines[ai],
         lineNumber: ai + 1,
+        toLineNumber: bi + 1,
       });
 
       i++;
@@ -113,6 +112,7 @@ export class DiffService {
         type: 'insert',
         content: bLines[j],
         lineNumber: j + 1,
+        toLineNumber: j + 1,
       });
       j++;
     }
@@ -130,11 +130,10 @@ export class DiffService {
 
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
-        if (a[i - 1] === b[j - 1]) {
-          dp[i][j] = dp[i - 1][j - 1] + 1;
-        } else {
-          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-        }
+        dp[i][j] =
+          a[i - 1] === b[j - 1]
+            ? dp[i - 1][j - 1] + 1
+            : Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
     }
 
