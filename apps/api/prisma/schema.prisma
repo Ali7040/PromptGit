@@ -44,14 +44,17 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  token     String    @unique   // SHA-256 hash of the raw token
   userId    String
+  familyId  String              // all tokens from the same login session share this
+  usedAt    DateTime?           // non-null = consumed; re-use means replay attack
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([familyId])
   @@map("refresh_tokens")
 }
 
