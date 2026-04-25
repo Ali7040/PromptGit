@@ -15,12 +15,6 @@ out/
 *.tsbuildinfo
 
 # ─── Environment files ────────────────────────────────
-.env
-.env.local
-.env.development
-.env.production
-.env.staging
-.env.test
 # Keep .env.example tracked
 !.env.example
 !**/.env.example
@@ -66,3 +60,4 @@ jest-results/
 .cache/
 tmp/
 temp/
+config.bat
