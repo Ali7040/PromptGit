@@ -5,24 +5,29 @@ describe('DiffService', () => {
 
   it('identical content → all equal', () => {
     const res = service['computeDiff']('a\nb', 'a\nb');
+    expect(res.length).toBe(2);
     expect(res.every(l => l.type === 'equal')).toBe(true);
   });
 
   it('empty from → all inserts', () => {
     const res = service['computeDiff']('', 'a\nb');
-
     expect(res.length).toBe(2);
     expect(res.every(l => l.type === 'insert')).toBe(true);
   });
 
   it('empty to → all deletes', () => {
     const res = service['computeDiff']('a\nb', '');
-
     expect(res.length).toBe(2);
     expect(res.every(l => l.type === 'delete')).toBe(true);
   });
 
-  it('stats match total lines', () => {
+  it('completely different → delete + insert', () => {
+    const res = service['computeDiff']('a\nb', 'x\ny');
+    expect(res.some(l => l.type === 'delete')).toBe(true);
+    expect(res.some(l => l.type === 'insert')).toBe(true);
+  });
+
+  it('stats match line count', () => {
     const res = service['computeDiff']('a\nb', 'a\nc');
 
     const stats = {
