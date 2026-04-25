@@ -1,5 +1,7 @@
 import { DiffService } from './diff.service';
 
+jest.mock('../prisma/prisma.service');
+
 describe('DiffService', () => {
   const mockPrisma = {} as any;
   const service = new DiffService(mockPrisma);
