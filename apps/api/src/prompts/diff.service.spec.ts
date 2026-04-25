@@ -1,7 +1,8 @@
 import { DiffService } from './diff.service';
 
 describe('DiffService', () => {
-  const service = new DiffService({} as any);
+  const mockPrisma = {} as any;
+  const service = new DiffService(mockPrisma);
 
   it('identical content → all equal', () => {
     const res = service['computeDiff']('a\nb', 'a\nb');
