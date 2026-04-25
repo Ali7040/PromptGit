@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/promptgit?style=social)](https://github.com/yourusername/promptgit)
+[![GitHub Stars](https://img.shields.io/github/stars/yourusername/promptgit?style=social)](https://github.com/Ali7040/PromptGit/)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da)](https://discord.gg/yourinvite)
 
 [Website](https://promptgit.dev) · [Documentation](https://docs.promptgit.dev) · [Marketplace](https://promptgit.dev/marketplace) · [Discord](https://discord.gg/ePzKHM22kY) · [Report Bug](https://github.com/Ali7040/promptgit/issues)
