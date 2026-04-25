@@ -5,7 +5,8 @@ export type ChangeType = 'equal' | 'insert' | 'delete';
 
 export interface DiffLine {
   type: ChangeType;
-  lineNumber?: number;
+  lineNumber: number;        // old file
+  toLineNumber?: number;     // new file
   content: string;
 }
 
@@ -20,7 +21,11 @@ export interface DiffResult {
 export class DiffService {
   constructor(private prisma: PrismaService) {}
 
-  async diffVersions(promptId: string, fromTag: string, toTag: string): Promise<DiffResult> {
+  async diffVersions(
+    promptId: string,
+    fromTag: string,
+    toTag: string
+  ): Promise<DiffResult> {
     const [from, to] = await Promise.all([
       this.prisma.promptVersion.findUniqueOrThrow({
         where: { promptId_versionTag: { promptId, versionTag: fromTag } },
@@ -31,48 +36,103 @@ export class DiffService {
     ]);
 
     const lines = this.computeDiff(from.content, to.content);
+
     const stats = {
       added: lines.filter((l) => l.type === 'insert').length,
       removed: lines.filter((l) => l.type === 'delete').length,
       unchanged: lines.filter((l) => l.type === 'equal').length,
     };
 
-    return { fromVersion: fromTag, toVersion: toTag, lines, stats };
+    return {
+      fromVersion: fromTag,
+      toVersion: toTag,
+      lines,
+      stats,
+    };
   }
 
-  /**
-   * Myers diff algorithm — same algorithm Git uses internally.
-   * Returns line-level hunks suitable for side-by-side rendering.
-   */
   private computeDiff(a: string, b: string): DiffLine[] {
+    // ✅ handle empty cases properly (no phantom empty line)
+    if (!a) {
+      return b
+        .split('\n')
+        .filter((l) => l.length > 0)
+        .map((content, i) => ({
+          type: 'insert' as const,
+          content,
+          lineNumber: i + 1,
+          toLineNumber: i + 1,
+        }));
+    }
+
+    if (!b) {
+      return a
+        .split('\n')
+        .filter((l) => l.length > 0)
+        .map((content, i) => ({
+          type: 'delete' as const,
+          content,
+          lineNumber: i + 1,
+        }));
+    }
+
     const aLines = a.split('\n');
     const bLines = b.split('\n');
-    const result: DiffLine[] = [];
 
-    // LCS-based diff
+    const result: DiffLine[] = [];
     const lcs = this.buildLCS(aLines, bLines);
+
     let i = 0;
     let j = 0;
 
     for (const [ai, bi] of lcs) {
       while (i < ai) {
-        result.push({ type: 'delete', lineNumber: i + 1, content: aLines[i] });
+        result.push({
+          type: 'delete',
+          content: aLines[i],
+          lineNumber: i + 1,
+        });
         i++;
       }
+
       while (j < bi) {
-        result.push({ type: 'insert', lineNumber: j + 1, content: bLines[j] });
+        result.push({
+          type: 'insert',
+          content: bLines[j],
+          lineNumber: j + 1,
+          toLineNumber: j + 1,
+        });
         j++;
       }
-      result.push({ type: 'equal', content: aLines[ai] });
+
+      result.push({
+        type: 'equal',
+        content: aLines[ai],
+        lineNumber: ai + 1,
+        toLineNumber: bi + 1,
+      });
+
       i++;
       j++;
     }
 
     while (i < aLines.length) {
-      result.push({ type: 'delete', lineNumber: i + 1, content: aLines[i++] });
+      result.push({
+        type: 'delete',
+        content: aLines[i],
+        lineNumber: i + 1,
+      });
+      i++;
     }
+
     while (j < bLines.length) {
-      result.push({ type: 'insert', lineNumber: j + 1, content: bLines[j++] });
+      result.push({
+        type: 'insert',
+        content: bLines[j],
+        lineNumber: j + 1,
+        toLineNumber: j + 1,
+      });
+      j++;
     }
 
     return result;
@@ -81,17 +141,25 @@ export class DiffService {
   private buildLCS(a: string[], b: string[]): [number, number][] {
     const m = a.length;
     const n = b.length;
-    const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+    const dp: number[][] = Array.from({ length: m + 1 }, () =>
+      new Array(n + 1).fill(0)
+    );
 
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
-        dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        dp[i][j] =
+          a[i - 1] === b[j - 1]
+            ? dp[i - 1][j - 1] + 1
+            : Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
     }
 
     const result: [number, number][] = [];
+
     let i = m;
     let j = n;
+
     while (i > 0 && j > 0) {
       if (a[i - 1] === b[j - 1]) {
         result.unshift([i - 1, j - 1]);
@@ -103,6 +171,7 @@ export class DiffService {
         j--;
       }
     }
+
     return result;
   }
 }
