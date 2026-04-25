@@ -71,13 +71,14 @@ export class PromptGit {
 }
 
 export class PromptVersionWithHelpers implements PromptVersion {
-  id: string;
-  versionTag: string;
-  content: string;
-  variables: PromptVariable[];
-  environment: 'DEV' | 'STAGING' | 'PRODUCTION';
+  // Properties are assigned via Object.assign in the constructor
+  id!: string;
+  versionTag!: string;
+  content!: string;
+  variables!: PromptVariable[];
+  environment!: 'DEV' | 'STAGING' | 'PRODUCTION';
   model?: string;
-  createdAt: string;
+  createdAt!: string;
 
   constructor(version: PromptVersion) {
     Object.assign(this, version);
