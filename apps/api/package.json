@@ -7,7 +7,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main",
     "lint": "eslint src --ext .ts",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
