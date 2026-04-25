@@ -52,7 +52,30 @@ export class DiffService {
   }
 
   private computeDiff(a: string, b: string): DiffLine[] {
-    // FIX 1: remove incorrect empty guard
+    // ✅ FIX: handle empty string edge cases properly
+    if (!a) {
+      return b
+        .split('\n')
+        .filter(Boolean)
+        .map((content, i) => ({
+          type: 'insert' as const,
+          content,
+          lineNumber: i + 1,
+          toLineNumber: i + 1,
+        }));
+    }
+
+    if (!b) {
+      return a
+        .split('\n')
+        .filter(Boolean)
+        .map((content, i) => ({
+          type: 'delete' as const,
+          content,
+          lineNumber: i + 1,
+        }));
+    }
+
     const aLines = a.split('\n');
     const bLines = b.split('\n');
 
@@ -63,7 +86,6 @@ export class DiffService {
     let j = 0;
 
     for (const [ai, bi] of lcs) {
-      // deletions
       while (i < ai) {
         result.push({
           type: 'delete',
@@ -73,7 +95,6 @@ export class DiffService {
         i++;
       }
 
-      // insertions
       while (j < bi) {
         result.push({
           type: 'insert',
@@ -84,7 +105,6 @@ export class DiffService {
         j++;
       }
 
-      // FIX 2: correct equal mapping
       result.push({
         type: 'equal',
         content: aLines[ai],
@@ -96,7 +116,6 @@ export class DiffService {
       j++;
     }
 
-    // remaining deletions
     while (i < aLines.length) {
       result.push({
         type: 'delete',
@@ -106,7 +125,6 @@ export class DiffService {
       i++;
     }
 
-    // remaining insertions
     while (j < bLines.length) {
       result.push({
         type: 'insert',

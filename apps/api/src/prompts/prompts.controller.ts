@@ -1,8 +1,14 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { DiffService } from './diff.service';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 class DiffQueryDto {
+  @IsString()
+  @IsNotEmpty()
   from: string;
+
+  @IsString()
+  @IsNotEmpty()
   to: string;
 }
 
