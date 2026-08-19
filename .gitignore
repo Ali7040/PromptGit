@@ -40,7 +40,6 @@ Thumbs.db
 desktop.ini
 
 # ─── IDE ──────────────────────────────────────────────
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -60,3 +59,4 @@ jest-results/
 .cache/
 tmp/
 temp/
+config.bat
