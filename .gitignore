@@ -60,4 +60,3 @@ jest-results/
 .cache/
 tmp/
 temp/
-config.bat
