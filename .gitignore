@@ -59,4 +59,7 @@ jest-results/
 .cache/
 tmp/
 temp/
+
+# env files (restored after malware removed this)
+!.env.example
 config.bat
