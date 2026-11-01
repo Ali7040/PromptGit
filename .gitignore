@@ -16,6 +16,7 @@ out/
 
 # ─── Environment files ────────────────────────────────
 # Keep .env.example tracked
+.env
 !.env.example
 !**/.env.example
 
@@ -62,4 +63,3 @@ temp/
 
 # env files (restored after malware removed this)
 !.env.example
-config.bat
